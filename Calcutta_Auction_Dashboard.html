@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>March Madness Calcutta Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f4;
+    --bg3: #eeede8;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #9a9994;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --green-bg: #eaf3de;
+    --green-text: #27500a;
+    --green-border: #97c459;
+    --amber-bg: #faeeda;
+    --amber-text: #633806;
+    --amber-border: #ef9f27;
+    --red-bg: #fcebeb;
+    --red-text: #791f1f;
+    --red-border: #f09595;
+    --blue-bg: #e6f1fb;
+    --blue-text: #0c447c;
+    --blue-border: #85b7eb;
+    --orange: #C55A11;
+    --navy: #1F3864;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #252523;
+      --bg3: #2e2e2b;
+      --text: #f0ede8;
+      --text2: #a8a49e;
+      --text3: #6b6865;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --green-bg: #173404;
+      --green-text: #c0dd97;
+      --green-border: #3b6d11;
+      --amber-bg: #412402;
+      --amber-text: #fac775;
+      --amber-border: #854f0b;
+      --red-bg: #501313;
+      --red-text: #f7c1c1;
+      --red-border: #a32d2d;
+      --blue-bg: #042c53;
+      --blue-text: #b5d4f4;
+      --blue-border: #185fa5;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg3);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 18px 24px 14px;
+    border-bottom: 3px solid var(--orange);
+  }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  header p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; background: var(--bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border: 0.5px solid var(--border); border-bottom: none; overflow-x: auto; }
+  .tab { flex: 1; min-width: 100px; padding: 12px 8px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; white-space: nowrap; transition: color .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  .panels { background: var(--bg); border-radius: 0 0 var(--radius-lg) var(--radius-lg); border: 0.5px solid var(--border); padding: 20px; margin-bottom: 16px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* INPUTS */
+  label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+  input[type=number], input[type=text], select {
+    width: 100%; padding: 8px 10px; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); background: var(--bg2); color: var(--text);
+    font-size: 14px; font-family: inherit; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(197,90,17,.15); }
+  button {
+    padding: 8px 16px; background: var(--navy); color: #fff; border: none;
+    border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: #2a4a7f; }
+  button.danger { background: var(--red-bg); color: var(--red-text); border: 0.5px solid var(--red-border); }
+  button.danger:hover { opacity: .8; }
+
+  /* LAYOUT HELPERS */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .row > .field { flex: 1; min-width: 130px; }
+  .row > .field-sm { flex: 0 0 90px; }
+  .row > .field-auto { display: flex; align-items: flex-end; }
+
+  /* METRIC CARDS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .metric { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .metric .mlbl { font-size: 11px; color: var(--text2); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; }
+  .metric .mval { font-size: 22px; font-weight: 600; }
+  .mval.green { color: var(--green-text); }
+  .mval.orange { color: var(--orange); }
+  .mval.red { color: var(--red-text); }
+  .mval.navy { color: var(--navy); }
+
+  /* SECTION LABEL */
+  .sec { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+
+  /* PAYOUT CARDS GRID */
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .pcard { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; background: var(--bg); }
+  .pcard.loser { border-color: var(--red-border); background: var(--red-bg); }
+  .pcard .pn { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .pcard .pp { font-size: 16px; font-weight: 600; color: var(--text); }
+  .pcard.loser .pp { color: var(--red-text); }
+  .pcard .pc { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .pcard .pm { font-size: 12px; font-weight: 600; color: var(--orange); margin-top: 4px; }
+  .pcard.loser .pm { color: var(--red-text); }
+
+  /* RESULTS */
+  .result { border-radius: var(--radius); padding: 12px 16px; font-size: 14px; font-weight: 500; margin-top: 10px; }
+  .result.ok { background: var(--green-bg); color: var(--green-text); border: 0.5px solid var(--green-border); }
+  .result.warn { background: var(--amber-bg); color: var(--amber-text); border: 0.5px solid var(--amber-border); }
+  .result.danger { background: var(--red-bg); color: var(--red-text); border: 0.5px solid var(--red-border); }
+  .result.neutral { background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border); }
+  .result.info { background: var(--blue-bg); color: var(--blue-text); border: 0.5px solid var(--blue-border); }
+
+  /* DIVIDER */
+  .hr { height: 0.5px; background: var(--border); margin: 16px 0; }
+
+  /* TABLES */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border2); text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr.stripe { background: var(--bg2); }
+  tr.hl { background: var(--blue-bg); }
+  tr.hl td { color: var(--blue-text); font-weight: 500; }
+  tr.loser-row { background: var(--red-bg); }
+  tr.loser-row td { color: var(--red-text); }
+  tr.total-row td { font-weight: 600; border-top: 0.5px solid var(--border2); }
+  .ta-r { text-align: right; }
+  .green-val { color: var(--green-text); font-weight: 500; }
+  .orange-val { color: var(--orange); font-weight: 500; }
+  .red-val { color: var(--red-text); }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .b-buy { background: var(--green-bg); color: var(--green-text); }
+  .b-caut { background: var(--amber-bg); color: var(--amber-text); }
+  .b-fade { background: var(--red-bg); color: var(--red-text); }
+  .b-pass { background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border2); }
+
+  /* BURN BAR */
+  .bar-wrap { height: 10px; background: var(--bg2); border-radius: 5px; overflow: hidden; margin: 6px 0 12px; }
+  .bar-fill { height: 100%; border-radius: 5px; transition: width .4s, background .4s; }
+
+  /* CARD WRAPPER */
+  .card { background: var(--bg2); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+
+  /* EMPTY STATE */
+  .empty { font-size: 13px; color: var(--text3); padding: 16px 0; text-align: center; }
+
+  /* INSTRUCTIONS PANEL */
+  .how-card { border-left: 3px solid var(--orange); padding: 12px 16px; background: var(--bg2); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 12px; }
+  .how-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--navy); }
+  .how-card p, .how-card li { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .how-card ul { padding-left: 16px; }
+
+  @media (max-width: 500px) {
+    .tab { font-size: 12px; padding: 10px 6px; }
+    .panels { padding: 14px; }
+    header h1 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏀 March Madness Calcutta Dashboard</h1>
+  <p>16 players · $200 buy-in · Live bid evaluator &amp; payout tracker</p>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="sw('pool',this)">Pool Setup</button>
+    <button class="tab" onclick="sw('calc',this)">Bid Calculator</button>
+    <button class="tab" onclick="sw('tracker',this)">Auction Tracker</button>
+    <button class="tab" onclick="sw('ref',this)">Payout Table</button>
+    <button class="tab" onclick="sw('how',this)">How to Use</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ── POOL SETUP ───────────────────────────────── -->
+    <div id="p-pool" class="panel active">
+      <p class="sec">Pool parameters</p>
+      <div class="row">
+        <div class="field">
+          <label>Buy-in per player ($)</label>
+          <input type="number" id="buyin" value="200" min="1" oninput="rc()">
+        </div>
+        <div class="field">
+          <label>Players per team</label>
+          <select id="tsize" onchange="rc()">
+            <option value="2">2 per team</option>
+            <option value="3" selected>3 per team (default)</option>
+            <option value="4">4 per team</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Number of bidding groups</label>
+          <input type="number" id="nteams" value="16" min="2" oninput="rc()">
+        </div>
+      </div>
+      <div class="metrics" id="pool-metrics"></div>
+      <p class="sec">Per-round payouts</p>
+      <div class="pgrid" id="pgrid"></div>
+    </div>
+
+    <!-- ── BID CALCULATOR ──────────────────────────── -->
+    <div id="p-calc" class="panel">
+      <div class="card">
+        <p class="sec">Real-time bid evaluator</p>
+        <div class="row">
+          <div class="field">
+            <label>Team name (optional)</label>
+            <input type="text" id="tname" placeholder="e.g. Duke Blue Devils">
+          </div>
+          <div class="field">
+            <label>Realistic ceiling round</label>
+            <select id="ceiling" onchange="evalBid()">
+              <option value="0">Loses R1 (0 wins)</option>
+              <option value="1">Wins R1 only</option>
+              <option value="2">Round of 32</option>
+              <option value="3">Sweet 16</option>
+              <option value="4">Elite 8</option>
+              <option value="5">Final Four</option>
+              <option value="6">Champion</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Your current bid ($)</label>
+            <input type="number" id="mybid" value="0" min="0" oninput="evalBid()">
+          </div>
+        </div>
+        <div id="bid-res"></div>
+        <div class="hr"></div>
+        <p class="sec" style="margin-bottom:8px">Profit/loss at every possible exit round</p>
+        <div class="tbl-wrap" id="bid-detail"></div>
+      </div>
+
+      <div class="card">
+        <p class="sec">Loser pool fade calculator</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Buy a team you expect to exit in R1 for a small amount — if they finish last, you collect the loser pool payout. Positive expected value = good fade.</p>
+        <div class="row">
+          <div class="field">
+            <label>Your fade bid ($)</label>
+            <input type="number" id="fadebid" value="20" min="0" oninput="evalFade()">
+          </div>
+          <div class="field">
+            <label>Confidence they finish last</label>
+            <select id="fadeconf" onchange="evalFade()">
+              <option value="0.10">Low — 10%</option>
+              <option value="0.25">Medium-low — 25%</option>
+              <option value="0.40" selected>Medium — 40%</option>
+              <option value="0.60">High — 60%</option>
+              <option value="0.80">Very high — 80%</option>
+            </select>
+          </div>
+        </div>
+        <div id="fade-res"></div>
+      </div>
+    </div>
+
+    <!-- ── AUCTION TRACKER ─────────────────────────── -->
+    <div id="p-tracker" class="panel">
+      <div class="metrics" id="tr-metrics"></div>
+      <div class="card">
+        <p class="sec" style="margin-bottom:10px">Log a purchased team</p>
+        <div class="row">
+          <div class="field">
+            <label>Team name</label>
+            <input type="text" id="a-name" placeholder="Team name">
+          </div>
+          <div class="field-sm">
+            <label>Seed</label>
+            <input type="number" id="a-seed" placeholder="#" min="1" max="16">
+          </div>
+          <div class="field">
+            <label>Bid paid ($)</label>
+            <input type="number" id="a-bid" placeholder="Amount" min="0">
+          </div>
+          <div class="field">
+            <label>Your verdict</label>
+            <select id="a-verdict">
+              <option value="buy">Buy ✓</option>
+              <option value="caut">Caution ⚠</option>
+              <option value="fade">Fade ✗</option>
+              <option value="pass">Pass —</option>
+            </select>
+          </div>
+          <div class="field-auto">
+            <button onclick="addTeam()">+ Add team</button>
+          </div>
+        </div>
+      </div>
+      <div id="tr-table"></div>
+    </div>
+
+    <!-- ── PAYOUT REFERENCE ────────────────────────── -->
+    <div id="p-ref" class="panel">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">All values update automatically from your Pool Setup settings. The 70% rule: never bid more than 70% of the cumulative payout for your ceiling round.</p>
+      <div class="tbl-wrap" id="ref-table"></div>
+    </div>
+
+    <!-- ── HOW TO USE ──────────────────────────────── -->
+    <div id="p-how" class="panel">
+      <div class="how-card">
+        <h3>Before the auction — Pool Setup tab</h3>
+        <ul>
+          <li>Set the buy-in amount, players per team, and number of bidding groups.</li>
+          <li>All payouts and max bids across the entire dashboard update instantly.</li>
+          <li>If team sizes are mixed, use 3 as the average or update mid-auction.</li>
+        </ul>
+      </div>
+      <div class="how-card">
+        <h3>During bidding — Bid Calculator tab</h3>
+        <ul>
+          <li>When a team comes up, set their realistic ceiling round in the dropdown.</li>
+          <li>Type in the current bid as it climbs at auction.</li>
+          <li><strong>Green</strong> = you're well within budget. <strong>Yellow</strong> = approaching your ceiling. <strong>Red</strong> = over your max — put your hand down.</li>
+          <li>The table below shows your profit or loss at every possible exit round.</li>
+        </ul>
+      </div>
+      <div class="how-card">
+        <h3>The 70% rule (your brother-in-law's strategy)</h3>
+        <ul>
+          <li>Estimate the round a team will realistically reach.</li>
+          <li>Look up the cumulative payout for that round.</li>
+          <li>Multiply by 0.70 — that's your hard max bid.</li>
+          <li>Example: Sweet 16 ceiling at $192 payout → max bid = $134.</li>
+        </ul>
+      </div>
+      <div class="how-card">
+        <h3>The loser pool fade</h3>
+        <ul>
+          <li>Two teams finish last and each collect 1% of the pool.</li>
+          <li>If you think a team will lose in R1, buy them cheap and root against them.</li>
+          <li>Use the Fade Calculator to check if the expected value is positive.</li>
+        </ul>
+      </div>
+      <div class="how-card">
+        <h3>Logging purchases — Auction Tracker tab</h3>
+        <ul>
+          <li>Log every team bought during the auction to track total spend.</li>
+          <li>The burn rate bar turns orange at 60% spend, red at 85%.</li>
+          <li>Use this to pace yourself — don't blow your budget on early teams.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /panels -->
+
+  <p style="font-size:11px;color:var(--text3);text-align:center;padding-bottom:16px">March Madness Calcutta Dashboard · All data is local to your browser · No internet required</p>
+</div>
+
+<script>
+const ROUNDS = [
+  {n:"Round 1 (per win)", short:"Win R1",   pct:.01,  w:32},
+  {n:"Round of 32",       short:"R of 32",  pct:.015, w:16},
+  {n:"Sweet 16",          short:"Sweet 16", pct:.02,  w:8},
+  {n:"Elite 8",           short:"Elite 8",  pct:.03,  w:4},
+  {n:"Final Four",        short:"Final Four",pct:.045,w:2},
+  {n:"Champion",          short:"Champion", pct:.05,  w:1},
+];
+const LOSER_PCT = .01;
+let teams = [];
+
+function sw(tab, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('p-' + tab).classList.add('active');
+  el.classList.add('active');
+}
+
+function pool() {
+  const b  = parseFloat(document.getElementById('buyin').value)  || 200;
+  const ts = parseInt(document.getElementById('tsize').value)     || 3;
+  const nt = parseInt(document.getElementById('nteams').value)    || 16;
+  return b * ts * nt;
+}
+
+function cum(idx, p) {
+  let s = 0;
+  for (let i = 0; i <= idx && i < 6; i++) s += ROUNDS[i].pct * p;
+  return s;
+}
+
+function f(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function rc() {
+  const p     = pool();
+  const champ = cum(5, p);
+  const loser = LOSER_PCT * p;
+  const ts    = parseInt(document.getElementById('tsize').value) || 3;
+  const nt    = parseInt(document.getElementById('nteams').value) || 16;
+
+  document.getElementById('pool-metrics').innerHTML = `
+    <div class="metric"><div class="mlbl">Total pool</div><div class="mval green">${f(p)}</div></div>
+    <div class="metric"><div class="mlbl">Total players</div><div class="mval navy">${ts * nt}</div></div>
+    <div class="metric"><div class="mlbl">Champion worth</div><div class="mval orange">${f(champ)}</div></div>
+    <div class="metric"><div class="mlbl">Absolute max bid</div><div class="mval orange">${f(champ * .7)}</div></div>
+    <div class="metric"><div class="mlbl">Last place payout</div><div class="mval red">${f(loser)} ea</div></div>
+  `;
+
+  let pg = '';
+  for (let i = 0; i < 6; i++) {
+    const pay = Math.round(ROUNDS[i].pct * p);
+    const c   = Math.round(cum(i, p));
+    const mb  = Math.round(c * .7);
+    pg += `<div class="pcard">
+      <div class="pn">${ROUNDS[i].n}</div>
+      <div class="pp">${f(pay)} / win</div>
+      <div class="pc">Cumulative: ${f(c)}</div>
+      <div class="pm">Max bid: ${f(mb)}</div>
+    </div>`;
+  }
+  pg += `<div class="pcard loser">
+    <div class="pn">Last place × 2</div>
+    <div class="pp">${f(loser)} each</div>
+    <div class="pm">Fade if bid &lt; ${f(loser * .7)}</div>
+  </div>`;
+  document.getElementById('pgrid').innerHTML = pg;
+
+  evalBid();
+  evalFade();
+  renderRef();
+  renderTrMetrics();
+}
+
+function evalBid() {
+  const p    = pool();
+  const ceil = parseInt(document.getElementById('ceiling').value);
+  const bid  = parseFloat(document.getElementById('mybid').value) || 0;
+  const name = document.getElementById('tname').value || 'This team';
+
+  if (ceil === 0) {
+    document.getElementById('bid-res').innerHTML    = `<div class="result warn">Projected R1 exit — consider as a loser pool fade, not a buy.</div>`;
+    document.getElementById('bid-detail').innerHTML = '';
+    return;
+  }
+
+  const c  = cum(ceil - 1, p);
+  const mx = c * .7;
+  const r  = bid / mx;
+  let cls, msg;
+
+  if (bid === 0)   { cls = 'neutral'; msg = 'Enter your current bid above to evaluate.'; }
+  else if (r <= .75) { cls = 'ok';   msg = `${f(bid)} on ${name} — well within the ${f(mx)} ceiling. Good value if your ceiling read is right.`; }
+  else if (r <= 1)   { cls = 'warn'; msg = `${f(bid)} is at ${Math.round(r*100)}% of the ${f(mx)} ceiling. Proceed carefully — you're close to the edge.`; }
+  else               { cls = 'danger'; msg = `${f(bid)} EXCEEDS the ${f(mx)} ceiling by ${f(bid - mx)}. You need them to go further than your own estimate just to break even. Put your hand down.`; }
+
+  document.getElementById('bid-res').innerHTML = `<div class="result ${cls}">${msg}</div>`;
+
+  let h = `<table><tr><th>Round</th><th class="ta-r">Cumulative payout</th><th class="ta-r">Max bid (70%)</th><th class="ta-r">Profit at this bid</th></tr>`;
+  for (let i = 0; i < 6; i++) {
+    const c2     = cum(i, p);
+    const mb     = c2 * .7;
+    const profit = bid > 0 ? c2 - bid : null;
+    const isc    = (i === ceil - 1);
+    const pc     = profit === null ? 'var(--text2)' : profit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+    const rowCls = isc ? 'hl' : i % 2 === 0 ? 'stripe' : '';
+    h += `<tr class="${rowCls}">
+      <td>${ROUNDS[i].short}${isc ? ' ← your ceiling' : ''}</td>
+      <td class="ta-r">${f(c2)}</td>
+      <td class="ta-r orange-val">${f(mb)}</td>
+      <td class="ta-r" style="color:${pc}">${profit !== null ? (profit >= 0 ? '+' : '') + f(profit) : '—'}</td>
+    </tr>`;
+  }
+  h += '</table>';
+  document.getElementById('bid-detail').innerHTML = h;
+}
+
+function evalFade() {
+  const p    = pool();
+  const fb   = parseFloat(document.getElementById('fadebid').value) || 0;
+  const conf = parseFloat(document.getElementById('fadeconf').value) || .4;
+  const lp   = LOSER_PCT * p;
+  const ev   = (conf * lp) - fb;
+  const cls  = ev >= 0 ? 'ok' : 'danger';
+  document.getElementById('fade-res').innerHTML = `<div class="result ${cls}">
+    Last place pays ${f(lp)}. At ${Math.round(conf * 100)}% confidence, expected value = <strong>${ev >= 0 ? '+' : ''}${f(ev)}</strong>.
+    ${ev >= 0 ? 'Positive edge — this fade makes sense.' : 'Negative edge — your bid is too high for this confidence level.'}
+  </div>`;
+}
+
+function renderRef() {
+  const p = pool();
+  let h = `<table>
+    <tr><th>Round</th><th class="ta-r">Winners</th><th class="ta-r">Per win</th><th class="ta-r">Cumulative</th><th class="ta-r">Max bid (70%)</th><th class="ta-r">% of pool</th></tr>`;
+  for (let i = 0; i < 6; i++) {
+    const pay = ROUNDS[i].pct * p;
+    const c   = cum(i, p);
+    const mb  = c * .7;
+    h += `<tr class="${i % 2 === 0 ? 'stripe' : ''}">
+      <td>${ROUNDS[i].n}</td>
+      <td class="ta-r">${ROUNDS[i].w}</td>
+      <td class="ta-r green-val">${f(pay)}</td>
+      <td class="ta-r">${f(c)}</td>
+      <td class="ta-r orange-val">${f(mb)}</td>
+      <td class="ta-r" style="color:var(--text2)">${(ROUNDS[i].pct * 100).toFixed(1)}%</td>
+    </tr>`;
+  }
+  const lp = LOSER_PCT * p;
+  h += `<tr class="loser-row">
+    <td>Last place × 2</td><td class="ta-r">2</td>
+    <td class="ta-r">${f(lp)}</td>
+    <td class="ta-r" colspan="2">Fade target if bid &lt; ${f(lp * .7)}</td>
+    <td class="ta-r">1.0%</td>
+  </tr>`;
+  h += `<tr class="total-row"><td colspan="5">Total paid out</td><td class="ta-r green-val">${f(p)}</td></tr>`;
+  h += '</table>';
+  document.getElementById('ref-table').innerHTML = h;
+}
+
+function renderTrMetrics() {
+  const p     = pool();
+  const spent = teams.reduce((s, t) => s + t.bid, 0);
+  const rem   = p - spent;
+  const pct   = Math.min(100, Math.round(spent / p * 100));
+  const bc    = pct < 60 ? '#27500a' : pct < 85 ? '#854f0b' : '#791f1f';
+  const rc    = rem >= 0 ? 'green' : 'red';
+
+  document.getElementById('tr-metrics').innerHTML = `
+    <div class="metric"><div class="mlbl">Teams logged</div><div class="mval navy">${teams.length}</div></div>
+    <div class="metric"><div class="mlbl">Total spent</div><div class="mval orange">${f(spent)}</div></div>
+    <div class="metric"><div class="mlbl">Budget used</div><div class="mval ${pct < 60 ? 'green' : pct < 85 ? 'orange' : 'red'}">${pct}%</div></div>
+    <div class="metric"><div class="mlbl">Remaining pool</div><div class="mval ${rc}">${f(rem)}</div></div>
+    <div class="metric" style="grid-column:1/-1;padding-bottom:6px">
+      <div class="mlbl">Auction burn rate</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${bc}"></div></div>
+    </div>
+  `;
+}
+
+function addTeam() {
+  const name    = document.getElementById('a-name').value.trim();
+  const seed    = document.getElementById('a-seed').value || '?';
+  const bid     = parseFloat(document.getElementById('a-bid').value) || 0;
+  const verdict = document.getElementById('a-verdict').value;
+  if (!name) { document.getElementById('a-name').focus(); return; }
+  teams.push({ name, seed, bid, verdict, id: Date.now() });
+  document.getElementById('a-name').value  = '';
+  document.getElementById('a-seed').value  = '';
+  document.getElementById('a-bid').value   = '';
+  renderTracker();
+  renderTrMetrics();
+}
+
+function removeTeam(id) {
+  if (!confirm('Remove this team?')) return;
+  teams = teams.filter(t => t.id !== id);
+  renderTracker();
+  renderTrMetrics();
+}
+
+function renderTracker() {
+  const p    = pool();
+  const wrap = document.getElementById('tr-table');
+  if (!teams.length) {
+    wrap.innerHTML = `<p class="empty">No teams logged yet. Use the form above as teams are purchased at auction.</p>`;
+    return;
+  }
+  const vm = {
+    buy:  '<span class="badge b-buy">Buy</span>',
+    caut: '<span class="badge b-caut">Caution</span>',
+    fade: '<span class="badge b-fade">Fade</span>',
+    pass: '<span class="badge b-pass">Pass</span>',
+  };
+  let h = `<div class="tbl-wrap"><table>
+    <tr><th>Team</th><th>Seed</th><th class="ta-r">Bid paid</th><th>Verdict</th><th class="ta-r">% of pool</th><th></th></tr>`;
+  teams.forEach(t => {
+    const pp = (t.bid / p * 100).toFixed(1);
+    h += `<tr>
+      <td style="font-weight:600">${t.name}</td>
+      <td>#${t.seed}</td>
+      <td class="ta-r">${f(t.bid)}</td>
+      <td>${vm[t.verdict]}</td>
+      <td class="ta-r" style="color:var(--text2);font-size:12px">${pp}%</td>
+      <td><button class="danger" onclick="removeTeam(${t.id})">✕</button></td>
+    </tr>`;
+  });
+  h += '</table></div>';
+  wrap.innerHTML = h;
+}
+
+// Initialise
+rc();
+renderTracker();
+renderTrMetrics();
+</script>
+</body>
+</html>
